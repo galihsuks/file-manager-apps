@@ -7,5 +7,5 @@ export default function App() {
 
     if (wantLogin) return <Login setWantLogin={setWantLogin} />;
 
-    return <FileManager />;
+    return <FileManager setWantLogin={setWantLogin} />;
 }

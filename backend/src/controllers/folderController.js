@@ -1,16 +1,19 @@
+const { generateID } = require("../../utils/services");
 const db = require("../database/db");
 const { isAdmin } = require("../middleware/auth");
+const fs = require("fs");
+const path = require("path");
+
+const UPLOAD_DIR = path.join(__dirname, "../../storage");
 
 const getFolders = (req, res) => {
-    const parent = req.query.parent_id || null;
-
-    db.all(
-        "SELECT * FROM folders WHERE parent_id IS ?",
-        [parent],
-        (err, rows) => {
-            res.json(rows);
-        },
-    );
+    const parentId = req.query.parent_id ?? null;
+    const query = `SELECT * FROM folders
+        WHERE parent_id ${parentId ? "= ?" : "IS NULL"} ORDER BY name COLLATE NOCASE ASC`;
+    const param = parentId ? [parentId] : [];
+    db.all(query, param, (err, rows) => {
+        res.json(rows);
+    });
 };
 
 const createFolder = (req, res) => {
@@ -18,12 +21,47 @@ const createFolder = (req, res) => {
         return res.status(403).json({ message: "Admin only" });
     }
 
-    const { name, parent_id } = req.body;
+    const name = req.body.name;
+    const parentId = req.body.parent_id == "null" ? null : req.body.parent_id;
 
-    db.run("INSERT INTO folders (name, parent_id) VALUES (?, ?)", [
+    db.run("INSERT INTO folders (id, name, parent_id) VALUES (?, ?, ?)", [
+        generateID("FOLDER"),
         name,
-        parent_id || null,
+        parentId,
     ]);
+
+    res.json({ message: "Folder created" });
+};
+
+const deleteFolder = (req, res) => {
+    if (!isAdmin(req)) {
+        return res.status(403).json({ message: "Admin only" });
+    }
+
+    const folderId = req.params.id;
+    db.all(
+        "SELECT id FROM folders WHERE parent_id = ?",
+        [folderId],
+        (err, folders) => {
+            db.all(
+                "SELECT id, ext FROM files WHERE parent_id = ?",
+                [folderId],
+                (err, files) => {
+                    files.forEach((file) => {
+                        const filenameStorage = `${file.id}.${file.ext}`;
+                        fs.unlinkSync(path.join(UPLOAD_DIR, filenameStorage));
+                    });
+                    db.run("DELETE FROM files WHERE parent_id = ?", [folderId]);
+                },
+            );
+
+            folders.forEach((fol_1) => {}); // TODO buat jadi seluruh file dan folder ke hapus semua
+            db.run("DELETE FROM folders WHERE parent_id = ?", [folderId]);
+        },
+    );
+
+    db.run("DELETE FROM folders WHERE parent_id = ?", [folderId]);
+    db.run("DELETE FROM folders WHERE id = ?", [folderId]);
 
     res.json({ message: "Folder created" });
 };
@@ -31,4 +69,5 @@ const createFolder = (req, res) => {
 module.exports = {
     getFolders,
     createFolder,
+    deleteFolder,
 };

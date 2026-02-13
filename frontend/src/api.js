@@ -1,17 +1,20 @@
 import axios from "axios";
-import { getDeviceId, getUserName } from "./utils";
+import { getDeviceId } from "./utils.jsx";
 
 const api = axios.create({
-    baseURL: "http://192.168.1.8:3001/api",
+    baseURL: "http://localhost:3001/api",
 });
 
-api.interceptors.request.use((config) => {
-    config.headers["x-device-id"] = getDeviceId();
-    config.headers["x-uploader-name"] = getUserName();
-
+api.interceptors.request.use(async (config) => {
     const token = localStorage.getItem("token");
     if (token) {
         config.headers.Authorization = "Bearer " + token;
+    }
+
+    // 🔥 hanya inject kalau diset true
+    if (config.requiresDeviceId) {
+        const idDevice = await getDeviceId();
+        config.headers["x-device-id"] = idDevice;
     }
 
     return config;

@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 
-const SECRET = "SUPER_SECRET_KEY";
+const SECRET = process.env.JWT_SECRET;
 
 exports.isAdmin = (req) => {
     const auth = req.headers.authorization;

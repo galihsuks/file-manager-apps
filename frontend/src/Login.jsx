@@ -1,5 +1,6 @@
 import { useState } from "react";
 import api from "./api";
+import { IoArrowBack } from "react-icons/io5";
 
 export default function Login({ setWantLogin }) {
     const [username, setUsername] = useState("");
@@ -10,44 +11,49 @@ export default function Login({ setWantLogin }) {
         try {
             const res = await api.post("/login", { username, password });
             localStorage.setItem("token", res.data.token);
+            localStorage.setItem("device_id", res.data.id);
             setWantLogin(false);
-        } catch {
-            alert("Login gagal");
+        } catch (error) {
+            alert(error.response.data.message);
         }
-    };
-
-    const logout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("device_id");
-        localStorage.removeItem("uploader_name");
-        setWantLogin(false);
     };
 
     return (
         <form onSubmit={submit}>
             <div className="h-screen flex items-center justify-center">
                 <div className="bg-white p-6 shadow rounded w-80">
-                    <h1 className="text-xl font-bold mb-4">Admin Login</h1>
+                    <h1 className="text-xl font-bold mb-4 text-gray-700">
+                        Admin Login
+                    </h1>
 
                     <input
-                        className="border p-2 w-full mb-3"
+                        className="border p-2 w-full mb-3 text-sm rounded text-gray-700 border-gray-200 focus:outline-lime-700"
                         placeholder="Username"
                         onChange={(e) => setUsername(e.target.value)}
                     />
 
                     <input
                         type="password"
-                        className="border p-2 w-full mb-3"
+                        className="border p-2 w-full mb-3 text-sm rounded text-gray-700 border-gray-200 focus:outline-lime-700"
                         placeholder="Password"
                         onChange={(e) => setPassword(e.target.value)}
                     />
 
                     <button
                         type="submit"
-                        className="bg-blue-500 text-white w-full py-2 rounded"
+                        className="bg-lime-100 mb-2 text-lime-700 hover:bg-lime-700 hover:text-white cursor-pointer font-semibold w-full py-2 rounded"
                     >
                         Login
                     </button>
+                    <div
+                        onClick={() => {
+                            setWantLogin(false);
+                        }}
+                        className="text-lime-700 cursor-pointer flex gap-2 items-center justify-center"
+                    >
+                        <IoArrowBack size={15} />
+                        <p>Kembali</p>
+                    </div>
                 </div>
             </div>
         </form>
