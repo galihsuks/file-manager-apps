@@ -1,16 +1,33 @@
 const initSqlJs = require("sql.js");
 const fs = require("fs");
 const path = require("path");
+const { app } = require("electron");
 
-const dbPath = path.join(__dirname, "../../database.sqlite");
+const userDataPath = app.getPath("userData");
+const dbPath = path.join(userDataPath, "database.sqlite");
 
 let db;
 let SQL;
 
 async function initDB() {
+    const isDev = !app.isPackaged;
+
     SQL = await initSqlJs({
-        locateFile: (file) =>
-            path.join(__dirname, "../../node_modules/sql.js/dist", file),
+        locateFile: (file) => {
+            if (isDev) {
+                return path.join(
+                    __dirname,
+                    "../../../node_modules/sql.js/dist",
+                    file,
+                );
+            } else {
+                return path.join(
+                    process.resourcesPath,
+                    "node_modules/sql.js/dist",
+                    file,
+                );
+            }
+        },
     });
 
     // kalau file sudah ada → load
@@ -55,7 +72,7 @@ async function initDB() {
         LIMIT 1
     `);
 
-    if (checkAdmin.length === 0) {
+    if (!checkAdmin.length || !checkAdmin[0].values.length) {
         db.run(
             `
             INSERT INTO users (id, username, password, role, created_at)

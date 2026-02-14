@@ -10,7 +10,9 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api", fileRoutes);
-app.use("/storage", express.static(path.join(__dirname, "../storage")));
+
+const userDataPath = global.__USER_DATA_PATH__;
+app.use("/storage", express.static(path.join(userDataPath, "storage")));
 
 app.use(express.static(path.join(__dirname, "../../frontend/dist")));
 

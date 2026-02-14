@@ -5,10 +5,11 @@ const { getDB, saveDB } = require("../database/db");
 const { isAdmin } = require("../middleware/auth");
 const { generateID } = require("../../utils/services");
 
-const UPLOAD_DIR = path.join(__dirname, "../../storage");
+const userDataPath = global.__USER_DATA_PATH__;
+const UPLOAD_DIR = path.join(userDataPath, "storage");
 
 if (!fs.existsSync(UPLOAD_DIR)) {
-    fs.mkdirSync(UPLOAD_DIR);
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
 // config multer

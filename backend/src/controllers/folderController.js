@@ -4,7 +4,8 @@ const { isAdmin } = require("../middleware/auth");
 const fs = require("fs");
 const path = require("path");
 
-const UPLOAD_DIR = path.join(__dirname, "../../storage");
+const userDataPath = global.__USER_DATA_PATH__;
+const UPLOAD_DIR = path.join(userDataPath, "storage");
 
 const getFolders = (req, res) => {
     try {

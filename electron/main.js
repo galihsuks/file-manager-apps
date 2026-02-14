@@ -4,9 +4,6 @@ const fs = require("fs");
 const axios = require("axios");
 const { initDB } = require("../backend/src/database/db");
 
-// start backend
-require("../backend/server");
-
 function createWindow() {
     const win = new BrowserWindow({
         width: 1200,
@@ -18,7 +15,12 @@ function createWindow() {
         },
     });
 
-    win.loadURL("http://localhost:3001");
+    const isDev = !app.isPackaged;
+    if (isDev) {
+        win.loadURL("http://localhost:3001");
+    } else {
+        win.loadFile(path.join(__dirname, "../frontend/dist/index.html"));
+    }
 }
 
 ipcMain.handle("download-file", async (event, { url, filename }) => {
@@ -34,6 +36,10 @@ ipcMain.handle("download-file", async (event, { url, filename }) => {
 });
 
 app.whenReady().then(async () => {
+    global.__USER_DATA_PATH__ = app.getPath("userData");
+
     await initDB();
+    // start backend
+    require("../backend/server");
     createWindow();
 });
