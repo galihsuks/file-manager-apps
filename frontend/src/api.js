@@ -2,7 +2,7 @@ import axios from "axios";
 import { getDeviceId } from "./utils.jsx";
 
 const api = axios.create({
-    baseURL: "http://localhost:3001/api",
+    baseURL: `${import.meta.env.VITE_DEV_ENV ? "http://localhost:3001" : ""}/api`,
 });
 
 api.interceptors.request.use(async (config) => {
@@ -13,7 +13,7 @@ api.interceptors.request.use(async (config) => {
 
     // 🔥 hanya inject kalau diset true
     if (config.requiresDeviceId) {
-        const idDevice = await getDeviceId();
+        const idDevice = getDeviceId();
         config.headers["x-device-id"] = idDevice;
     }
 

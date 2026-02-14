@@ -78,21 +78,9 @@ export function IconGenerate(ext, isFolder = false) {
     return <MdInsertDriveFile size={18} className="text-gray-500" />;
 }
 
-export const getDeviceId = async () => {
+export const getDeviceId = () => {
     let deviceId = localStorage.getItem("device_id");
-    if (!deviceId || deviceId == "undefined") {
-        const q1 = prompt("Masukkan nama user kamu:");
-        if (q1) {
-            const resSignup = await api.post("/signup", {
-                username: q1,
-                password: "123456",
-                role: "user",
-            });
-            localStorage.setItem("device_id", resSignup.data.id);
-            deviceId = resSignup.data.id;
-        }
-    }
-    return deviceId;
+    return deviceId == "undefined" ? null : deviceId;
 };
 
 export function toJakartaTime(dateString, options = {}) {
@@ -129,3 +117,22 @@ export function toJakartaPretty(dateString) {
 
     return formatted + " WIB";
 }
+
+export const isElectron = () => {
+    return navigator.userAgent.toLowerCase().includes("electron");
+};
+
+export const downloadFile = async (filename, fileUrl) => {
+    if (isElectron() && window.electronAPI) {
+        // 🔥 Electron mode
+        window.electronAPI.downloadFile(fileUrl, filename);
+    } else {
+        // 🌐 Browser mode
+        const link = document.createElement("a");
+        link.href = fileUrl;
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    }
+};

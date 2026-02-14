@@ -5,6 +5,7 @@ import { FiDownload, FiX, FiZoomIn, FiZoomOut } from "react-icons/fi";
 import ExcelPreview from "./ExcelPreview";
 import DocxPreview from "./DocPreview";
 import TextPreview from "./TextPreview";
+import { downloadFile } from "./utils";
 
 export default function FilePreviewModal({ file, onClose }) {
     const [loading, setLoading] = useState(false);
@@ -13,6 +14,7 @@ export default function FilePreviewModal({ file, onClose }) {
 
     const extension = file?.ext?.toLowerCase();
     const fileUrl = file?.url;
+    const filenameOriginal = file?.name;
 
     if (!file) return null;
 
@@ -44,13 +46,12 @@ export default function FilePreviewModal({ file, onClose }) {
                         </>
                     )}
 
-                    <a
-                        href={fileUrl}
-                        download
+                    <div
+                        onClick={() => downloadFile(filenameOriginal, fileUrl)}
                         className="flex items-center gap-1"
                     >
                         <FiDownload /> Download
-                    </a>
+                    </div>
                 </div>
 
                 <button onClick={onClose}>

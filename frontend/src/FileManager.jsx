@@ -3,8 +3,14 @@ import api from "./api";
 import { RiFileAddLine, RiFolderAddLine } from "react-icons/ri";
 import { FaRegUser } from "react-icons/fa";
 import { TbHome2, TbLogout } from "react-icons/tb";
-import { MdDeleteOutline, MdFolderOpen, MdOutlineImage } from "react-icons/md";
 import {
+    MdDeleteOutline,
+    MdFolderOpen,
+    MdOutlineFileDownload,
+    MdOutlineImage,
+} from "react-icons/md";
+import {
+    downloadFile,
     getDeviceId,
     IconGenerate,
     toJakartaPretty,
@@ -12,6 +18,8 @@ import {
 } from "./utils";
 import Notif from "./Notif";
 import FilePreviewModal from "./FilePreview";
+import ConfirmModal from "./confirmModal";
+import PromptModal from "./PromptModal";
 
 export default function FileManager({ setWantLogin }) {
     const [folders, setFolders] = useState([]);
@@ -29,17 +37,58 @@ export default function FileManager({ setWantLogin }) {
     const [previewFile, setPreviewFile] = useState({
         show: false,
         filename: "",
+        filenameOriginal: "",
         ext: "",
+    });
+    const [promptState, setPromptState] = useState({
+        open: false,
+        title: "",
+        message: "",
+        onConfirm: () => {},
+        onCancel: () => {
+            setPromptState({ ...promptState, open: false });
+        },
+    });
+    const [confirmState, setConfirmState] = useState({
+        open: false,
+        title: "",
+        message: "",
+        onConfirm: () => {},
+        onCancel: () => {
+            setConfirmState({ ...confirmState, open: false });
+        },
     });
 
     useEffect(() => {
         const tokenLcalStor = localStorage.getItem("token");
         tokenRef.current = tokenLcalStor;
 
-        (async () => {
-            const getDeviceIdLocal = await getDeviceId();
-            setDeviceId(getDeviceIdLocal);
-        })();
+        const getDeviceIdLocal = getDeviceId();
+        if (!getDeviceIdLocal) {
+            setPromptState({
+                ...promptState,
+                open: true,
+                title: "Login",
+                message: "Masukkan nama user Anda:",
+                onConfirm: (value) => {
+                    if (value) {
+                        (async () => {
+                            const resSignup = await api.post("/signup", {
+                                username: value,
+                                password: "123456",
+                                role: "user",
+                            });
+                            localStorage.setItem(
+                                "device_id",
+                                resSignup.data.id,
+                            );
+                            window.location.reload();
+                        })();
+                    }
+                },
+            });
+        }
+        setDeviceId(getDeviceIdLocal);
     }, []);
 
     const loadFolders = async (pId) => {
@@ -91,6 +140,30 @@ export default function FileManager({ setWantLogin }) {
             });
             loadFiles(currentFolder);
         } catch (error) {
+            if (error.response.status == 402) {
+                setPromptState({
+                    ...promptState,
+                    open: true,
+                    title: "Login",
+                    message: "Masukkan nama user Anda:",
+                    onConfirm: (value) => {
+                        if (value) {
+                            (async () => {
+                                const resSignup = await api.post("/signup", {
+                                    username: value,
+                                    password: "123456",
+                                    role: "user",
+                                });
+                                localStorage.setItem(
+                                    "device_id",
+                                    resSignup.data.id,
+                                );
+                                window.location.reload();
+                            })();
+                        }
+                    },
+                });
+            }
             setNotif({
                 teks: error.response.data.message,
                 type: "danger",
@@ -100,58 +173,80 @@ export default function FileManager({ setWantLogin }) {
     };
 
     const handleDelete = async (isFolder, name, id) => {
-        if (!confirm(`Delete ${isFolder ? "folder" : "file"} ${name}?`)) return;
-        try {
-            const responseDelete = await api.delete(
-                `/${isFolder ? "folders" : "files"}/${id}`,
-                {
-                    requiresDeviceId: true,
-                },
-            );
-            setNotif({
-                teks: responseDelete.data.message,
-                type: "success",
-                show: true,
-            });
-            loadFiles(currentFolder);
-            loadFolders(currentFolder);
-        } catch (error) {
-            setNotif({
-                teks: error.response.data.message,
-                type: "danger",
-                show: true,
-            });
-        }
+        const message = `Delete ${isFolder ? "folder" : "file"} ${name}?`;
+        const title = `Konfirmasi Delete`;
+        setConfirmState({
+            ...confirmState,
+            open: true,
+            title,
+            message,
+            onConfirm: () => {
+                (async () => {
+                    try {
+                        const responseDelete = await api.delete(
+                            `/${isFolder ? "folders" : "files"}/${id}`,
+                            {
+                                requiresDeviceId: true,
+                            },
+                        );
+                        setNotif({
+                            teks: responseDelete.data.message,
+                            type: "success",
+                            show: true,
+                        });
+                        confirmState.onCancel();
+                        loadFiles(currentFolder);
+                        loadFolders(currentFolder);
+                    } catch (error) {
+                        setNotif({
+                            teks: error.response.data.message,
+                            type: "danger",
+                            show: true,
+                        });
+                    }
+                })();
+            },
+        });
     };
 
     const isAdmin = !!localStorage.getItem("token");
 
-    const createFolder = async () => {
-        const name = prompt("Nama folder?");
-        if (!name) return;
+    const createFolder = () => {
+        setPromptState({
+            ...promptState,
+            open: true,
+            title: "Add Folder",
+            message: "Beri nama folder baru:",
+            onConfirm: (value) => {
+                if (value) {
+                    (async () => {
+                        try {
+                            const resPostFolder = await api.post(
+                                "/folders",
+                                { name: value, parent_id: currentFolder },
+                                {
+                                    requiresDeviceId: true,
+                                },
+                            );
 
-        try {
-            const resPostFolder = await api.post(
-                "/folders",
-                { name, parent_id: currentFolder },
-                {
-                    requiresDeviceId: true,
-                },
-            );
-
-            setNotif({
-                teks: resPostFolder.data.message,
-                type: "success",
-                show: true,
-            });
-            loadFolders(currentFolder);
-        } catch (error) {
-            setNotif({
-                teks: error.response.data.message,
-                type: "danger",
-                show: true,
-            });
-        }
+                            setNotif({
+                                teks: resPostFolder.data.message,
+                                type: "success",
+                                show: true,
+                            });
+                            promptState.onCancel();
+                            loadFolders(currentFolder);
+                        } catch (error) {
+                            setNotif({
+                                teks: error.response.data.message,
+                                type: "danger",
+                                show: true,
+                            });
+                        }
+                    })();
+                }
+            },
+        });
     };
 
     const handleLogout = () => {
@@ -171,11 +266,26 @@ export default function FileManager({ setWantLogin }) {
 
     return (
         <>
+            <ConfirmModal
+                open={confirmState.open}
+                title={confirmState.title}
+                message={confirmState.message}
+                onConfirm={confirmState.onConfirm}
+                onCancel={confirmState.onCancel}
+            />
+            <PromptModal
+                open={promptState.open}
+                title={promptState.title}
+                message={promptState.message}
+                onConfirm={promptState.onConfirm}
+                onCancel={promptState.onCancel}
+            />
             {previewFile.show && (
                 <FilePreviewModal
                     file={{
-                        url: `http://localhost:3001/storage/${previewFile.filename}`,
+                        url: `${import.meta.env.VITE_DEV_ENV ? "http://localhost:3001" : ""}/storage/${previewFile.filename}`,
                         ext: previewFile.ext,
+                        name: previewFile.filenameOriginal,
                     }}
                     onClose={() =>
                         setPreviewFile({ ...previewFile, show: false })
@@ -195,21 +305,17 @@ export default function FileManager({ setWantLogin }) {
                         Office File Manager
                     </h1>
                     <div className="flex items-stretch gap-2">
-                        {deviceId && deviceId != "undefined" && (
-                            <label title="Upload File">
-                                <div className="flex items-center gap-1 bg-gray-100 text-gray-700 hover:text-white cursor-pointer hover:bg-gray-700 text-sm px-3 py-2 rounded">
-                                    <RiFileAddLine size={20} />
-                                    <p className="hidden md:block">
-                                        Upload File
-                                    </p>
-                                </div>
-                                <input
-                                    className="hidden"
-                                    type="file"
-                                    onChange={handleUpload}
-                                />
-                            </label>
-                        )}
+                        <label title="Upload File">
+                            <div className="flex items-center gap-1 bg-gray-100 text-gray-700 hover:text-white cursor-pointer hover:bg-gray-700 text-sm px-3 py-2 rounded">
+                                <RiFileAddLine size={20} />
+                                <p className="hidden md:block">Upload File</p>
+                            </div>
+                            <input
+                                className="hidden"
+                                type="file"
+                                onChange={handleUpload}
+                            />
+                        </label>
                         {isAdmin && (
                             <div
                                 onClick={createFolder}
@@ -329,13 +435,14 @@ export default function FileManager({ setWantLogin }) {
                                         <div className="flex gap-2 items-center justify-center">
                                             {isAdmin && (
                                                 <button
-                                                    onClick={() =>
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
                                                         handleDelete(
                                                             true,
                                                             f.name,
                                                             f.id,
-                                                        )
-                                                    }
+                                                        );
+                                                    }}
                                                     className="cursor-pointer bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-rose-100 p-2 rounded"
                                                 >
                                                     <MdDeleteOutline
@@ -355,6 +462,7 @@ export default function FileManager({ setWantLogin }) {
                                         onClick={() => {
                                             setPreviewFile({
                                                 filename: `${file.id}.${file.ext}`,
+                                                filenameOriginal: `${file.filename}`,
                                                 ext: file.ext,
                                                 show: true,
                                             });
@@ -397,24 +505,40 @@ export default function FileManager({ setWantLogin }) {
                                             </div>
                                         </td>
                                         <td>
-                                            <div className="flex gap-2 items-center justify-center">
+                                            <div className="flex gap-1 items-center justify-center">
+                                                <div
+                                                    title="Unduh"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        downloadFile(
+                                                            file.filename,
+                                                            `${import.meta.env.VITE_DEV_ENV ? "http://localhost:3001" : ""}/storage/${file.id}.${file.ext}`,
+                                                        );
+                                                    }}
+                                                    className="cursor-pointer bg-lime-50 text-lime-600 hover:bg-lime-600 hover:text-lime-100 p-2 rounded"
+                                                >
+                                                    <MdOutlineFileDownload
+                                                        size={15}
+                                                    />
+                                                </div>
                                                 {(mine || isAdmin) && (
-                                                    <button
-                                                        onClick={() =>
+                                                    <div
+                                                        title="Hapus"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
                                                             handleDelete(
                                                                 false,
                                                                 file.filename,
                                                                 file.id,
-                                                            )
-                                                        }
+                                                            );
+                                                        }}
                                                         className="cursor-pointer bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-rose-100 p-2 rounded"
                                                     >
                                                         <MdDeleteOutline
                                                             size={15}
                                                         />
-                                                    </button>
+                                                    </div>
                                                 )}
-                                                {/* TODO tambahin bisa download */}
                                             </div>
                                         </td>
                                     </tr>
