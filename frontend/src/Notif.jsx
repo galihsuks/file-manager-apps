@@ -34,7 +34,7 @@ export default function Notif({
             className={`
                 fixed bottom-5 right-5
                 text-white px-6 py-3 rounded-xl shadow-lg
-                transform transition-all duration-300 ease-in-out
+                transform transition-all duration-300 ease-in-out text-xs md:text-sm
                 ${typeStyles[type]}
                 ${visible ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"}
             `}

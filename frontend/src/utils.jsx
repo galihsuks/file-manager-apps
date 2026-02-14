@@ -10,6 +10,23 @@ import {
     MdInsertDriveFile,
     MdFolder,
 } from "react-icons/md";
+import { useEffect, useState } from "react";
+
+export function useIsTouchDevice() {
+    const [isTouch, setIsTouch] = useState(false);
+
+    useEffect(() => {
+        const mediaQuery = window.matchMedia("(pointer: coarse)");
+        setIsTouch(mediaQuery.matches);
+
+        const handler = (e) => setIsTouch(e.matches);
+        mediaQuery.addEventListener("change", handler);
+
+        return () => mediaQuery.removeEventListener("change", handler);
+    }, []);
+
+    return isTouch;
+}
 
 export function IconGenerate(ext, isFolder = false) {
     if (isFolder) {

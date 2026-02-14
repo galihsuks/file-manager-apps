@@ -4,8 +4,14 @@ import { RiFileAddLine, RiFolderAddLine } from "react-icons/ri";
 import { FaRegUser } from "react-icons/fa";
 import { TbHome2, TbLogout } from "react-icons/tb";
 import { MdDeleteOutline, MdFolderOpen, MdOutlineImage } from "react-icons/md";
-import { getDeviceId, IconGenerate, toJakartaPretty } from "./utils";
+import {
+    getDeviceId,
+    IconGenerate,
+    toJakartaPretty,
+    useIsTouchDevice,
+} from "./utils";
 import Notif from "./Notif";
+import FilePreviewModal from "./FilePreview";
 
 export default function FileManager({ setWantLogin }) {
     const [folders, setFolders] = useState([]);
@@ -18,6 +24,12 @@ export default function FileManager({ setWantLogin }) {
         teks: "",
         type: "",
         show: false,
+    });
+    const isTouch = useIsTouchDevice();
+    const [previewFile, setPreviewFile] = useState({
+        show: false,
+        filename: "",
+        ext: "",
     });
 
     useEffect(() => {
@@ -153,16 +165,23 @@ export default function FileManager({ setWantLogin }) {
     const handleClickBreadcrumb = (id, index) => {
         const arrNew = [...history];
         arrNew.splice(index + 1);
-        console.log({
-            arrNew,
-            index,
-        });
         setHistory(arrNew);
         setCurrentFolder(id);
     };
 
     return (
         <>
+            {previewFile.show && (
+                <FilePreviewModal
+                    file={{
+                        url: `http://localhost:3001/storage/${previewFile.filename}`,
+                        ext: previewFile.ext,
+                    }}
+                    onClose={() =>
+                        setPreviewFile({ ...previewFile, show: false })
+                    }
+                />
+            )}
             {notif.show && (
                 <Notif
                     text={notif.teks}
@@ -171,8 +190,8 @@ export default function FileManager({ setWantLogin }) {
                 />
             )}
             <div className="h-screen bg-gray-100 p-5 md:p-10 flex flex-col gap-4">
-                <div className="w-full bg-white shadow rounded-xl px-6 py-5 flex items-center justify-between">
-                    <h1 className="text-2xl font-bold text-gray-700">
+                <div className="w-full bg-white shadow rounded-xl px-6 py-5 flex gap-3 items-center justify-between">
+                    <h1 className="text-2xl/6 font-bold text-gray-700">
                         Office File Manager
                     </h1>
                     <div className="flex items-stretch gap-2">
@@ -219,13 +238,13 @@ export default function FileManager({ setWantLogin }) {
                     </div>
                 </div>
                 <div className="w-full bg-white shadow rounded-xl px-6 py-5">
-                    <div className="font-semibold mb-2 flex gap-2 items-center text-sm py-2 px-3 bg-gray-50 rounded-full">
+                    <div className="font-semibold mb-2 flex gap-2 items-center text-sm py-2 px-3 bg-gray-200 rounded-full overflow-x-auto no-scrollbar">
                         <span
                             onClick={() => {
                                 setHistory([]);
                                 setCurrentFolder(null);
                             }}
-                            className="cursor-pointer hover:text-lime-600"
+                            className="cursor-pointer hover:text-lime-600 text-gray-700"
                         >
                             <TbHome2 size={17} />
                         </span>
@@ -239,7 +258,7 @@ export default function FileManager({ setWantLogin }) {
                                     onClick={() =>
                                         handleClickBreadcrumb(h.id, ind_h)
                                     }
-                                    className="cursor-pointer hover:text-lime-600"
+                                    className="cursor-pointer hover:text-lime-600 text-gray-700 text-xs md:text-sm text-nowrap"
                                 >
                                     {h.name}
                                 </span>
@@ -249,16 +268,16 @@ export default function FileManager({ setWantLogin }) {
                     <table className="w-full">
                         <thead>
                             <tr className="text-gray-300">
-                                <th className="text-start font-semibold text-sm">
+                                <th className="text-start font-semibold text-xs md:text-sm">
                                     <p className="py-2">Nama</p>
                                 </th>
-                                <th className="font-semibold text-sm">
+                                <th className="font-semibold text-xs md:text-sm">
                                     Pemilik
                                 </th>
-                                <th className="font-semibold text-sm">
+                                <th className="font-semibold text-xs md:text-sm">
                                     Tanggal
                                 </th>
-                                <th className="font-semibold text-sm">
+                                <th className="font-semibold text-xs md:text-sm">
                                     Action
                                 </th>
                             </tr>
@@ -267,20 +286,44 @@ export default function FileManager({ setWantLogin }) {
                             {folders.map((f) => (
                                 <tr
                                     key={f.id}
-                                    onDoubleClick={() => openFolder(f)}
+                                    onClick={
+                                        isTouch
+                                            ? () => openFolder(f)
+                                            : undefined
+                                    }
+                                    onDoubleClick={
+                                        !isTouch
+                                            ? () => openFolder(f)
+                                            : undefined
+                                    }
                                     className="hover:bg-gray-50 cursor-default text-sm md:text-md text-gray-500"
                                 >
                                     <td>
-                                        <div className="flex gap-2 py-3 ps-3">
+                                        <div className="flex gap-2 py-3 ps-0 md:ps-3 items-center">
                                             {IconGenerate("", true)}
-                                            <p className="font-semibold text-nowrap truncate max-w-[100px] md:max-w-[400px]">
+                                            <p className="font-semibold text-nowrap truncate max-w-[100px] md:max-w-[400px] text-xs md:text-sm">
                                                 {f.name}
                                             </p>
                                         </div>
                                     </td>
                                     <td></td>
                                     <td className="text-center">
-                                        {toJakartaPretty(f.created_at)}
+                                        <div className="flex gap-1 justify-center items-center">
+                                            <p className="text-xs md:text-sm">
+                                                {f.created_at
+                                                    ? toJakartaPretty(
+                                                          f.created_at,
+                                                      ).split(",")[0]
+                                                    : ""}
+                                            </p>
+                                            <p className="hidden md:block text-xs md:text-sm">
+                                                {f.created_at
+                                                    ? toJakartaPretty(
+                                                          f.created_at,
+                                                      ).split(",")[1]
+                                                    : ""}
+                                            </p>
+                                        </div>
                                     </td>
                                     <td>
                                         <div className="flex gap-2 items-center justify-center">
@@ -309,27 +352,49 @@ export default function FileManager({ setWantLogin }) {
                                 return (
                                     <tr
                                         key={file.id}
+                                        onClick={() => {
+                                            setPreviewFile({
+                                                filename: `${file.id}.${file.ext}`,
+                                                ext: file.ext,
+                                                show: true,
+                                            });
+                                        }}
                                         className="hover:bg-gray-50 cursor-default text-sm md:text-md text-gray-500"
                                     >
                                         <td>
-                                            <div className="flex gap-2 py-3 ps-3">
+                                            <div className="flex gap-2 py-3 ps-0 md:ps-3 items-center">
                                                 {IconGenerate(file.ext, false)}
-                                                <p className="font-semibold text-nowrap truncate max-w-[100px] md:max-w-[400px]">
+                                                <p className="font-semibold text-nowrap truncate max-w-[100px] md:max-w-[400px] text-xs md:text-sm">
                                                     {file.filename}
                                                 </p>
                                             </div>
                                         </td>
                                         {mine ? (
-                                            <td className="text-center text-nowrap text-lime-500 font-semibold px-2 py-1 rounded">
+                                            <td className="text-center text-nowrap text-lime-500 font-semibold px-3 py-1 rounded text-xs md:text-sm">
                                                 Saya
                                             </td>
                                         ) : (
-                                            <td className="text-center text-nowrap text-gray-400 px-2 py-1 rounded">
+                                            <td className="text-center text-nowrap text-gray-400 px-2 py-1 rounded text-xs md:text-sm">
                                                 {file.username}
                                             </td>
                                         )}
                                         <td className="text-center">
-                                            {toJakartaPretty(file.created_at)}
+                                            <div className="flex gap-1 justify-center items-center">
+                                                <p className="text-xs md:text-sm">
+                                                    {file.created_at
+                                                        ? toJakartaPretty(
+                                                              file.created_at,
+                                                          ).split(",")[0]
+                                                        : ""}
+                                                </p>
+                                                <p className="hidden md:block text-xs md:text-sm">
+                                                    {file.created_at
+                                                        ? toJakartaPretty(
+                                                              file.created_at,
+                                                          ).split(",")[1]
+                                                        : ""}
+                                                </p>
+                                            </div>
                                         </td>
                                         <td>
                                             <div className="flex gap-2 items-center justify-center">
@@ -349,6 +414,7 @@ export default function FileManager({ setWantLogin }) {
                                                         />
                                                     </button>
                                                 )}
+                                                {/* TODO tambahin bisa download */}
                                             </div>
                                         </td>
                                     </tr>
@@ -358,7 +424,7 @@ export default function FileManager({ setWantLogin }) {
                                 <tr>
                                     <td
                                         colSpan={4}
-                                        className="text-gray-300 text-center"
+                                        className="text-gray-300 text-center text-xs md:text-sm"
                                     >
                                         <i>No files or folders</i>
                                     </td>
