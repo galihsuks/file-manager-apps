@@ -14,7 +14,7 @@ export default function FilePreviewModal({ file, onClose }) {
 
     const extension = file?.ext?.toLowerCase();
     const fileUrl = file?.url;
-    const filenameOriginal = file?.name;
+    const fileId = file?.id;
 
     if (!file) return null;
 
@@ -46,12 +46,12 @@ export default function FilePreviewModal({ file, onClose }) {
                         </>
                     )}
 
-                    <div
-                        onClick={() => downloadFile(filenameOriginal, fileUrl)}
+                    <a
+                        href={`${import.meta.env.VITE_BE ?? ""}/api/files/view/${fileId}`}
                         className="flex items-center gap-1"
                     >
                         <FiDownload /> Download
-                    </div>
+                    </a>
                 </div>
 
                 <button onClick={onClose}>

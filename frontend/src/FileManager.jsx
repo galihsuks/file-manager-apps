@@ -10,7 +10,6 @@ import {
     MdOutlineImage,
 } from "react-icons/md";
 import {
-    downloadFile,
     getDeviceId,
     IconGenerate,
     toJakartaPretty,
@@ -283,7 +282,7 @@ export default function FileManager({ setWantLogin }) {
             {previewFile.show && (
                 <FilePreviewModal
                     file={{
-                        url: `${import.meta.env.VITE_DEV_ENV ? "http://localhost:3001" : ""}/storage/${previewFile.filename}`,
+                        url: `${import.meta.env.VITE_BE ?? ""}/api/files/view/${previewFile.filename}`,
                         ext: previewFile.ext,
                         name: previewFile.filenameOriginal,
                     }}
@@ -506,21 +505,15 @@ export default function FileManager({ setWantLogin }) {
                                         </td>
                                         <td>
                                             <div className="flex gap-1 items-center justify-center">
-                                                <div
+                                                <a
                                                     title="Unduh"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        downloadFile(
-                                                            file.filename,
-                                                            `${import.meta.env.VITE_DEV_ENV ? "http://localhost:3001" : ""}/storage/${file.id}.${file.ext}`,
-                                                        );
-                                                    }}
+                                                    href={`${import.meta.env.VITE_BE ?? ""}/api/files/download/${file.id}.${file.ext}`}
                                                     className="cursor-pointer bg-lime-50 text-lime-600 hover:bg-lime-600 hover:text-lime-100 p-2 rounded"
                                                 >
                                                     <MdOutlineFileDownload
                                                         size={15}
                                                     />
-                                                </div>
+                                                </a>
                                                 {(mine || isAdmin) && (
                                                     <div
                                                         title="Hapus"

@@ -2,7 +2,7 @@ import axios from "axios";
 import { getDeviceId } from "./utils.jsx";
 
 const api = axios.create({
-    baseURL: `${import.meta.env.VITE_DEV_ENV ? "http://localhost:3001" : ""}/api`,
+    baseURL: `${import.meta.env.VITE_BE ?? ""}/api`,
 });
 
 api.interceptors.request.use(async (config) => {

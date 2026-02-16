@@ -1,8 +1,0 @@
-/node_modules
-.env
-package-lock.json
-/storage/*
-/src/database/database.sqlite
-/dist
-database.sqlite
-file-manager-apps.exe
